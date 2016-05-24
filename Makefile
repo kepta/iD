@@ -267,10 +267,12 @@ dist/iD.js: node_modules/.install Makefile
 
 dist/iD.min.js: dist/iD.js Makefile
 	@rm -f $@
+	cp js/lib/mapillary.js dist
 	node_modules/.bin/uglifyjs $< -c -m -o $@
 
 dist/iD.css: css/*.css
-	cat css/reset.css css/map.css css/app.css > $@
+	cp css/*.svg dist/
+	cat css/reset.css css/mapillary.css css/map.css css/app.css > $@
 
 node_modules/.install: package.json
 	npm install
@@ -311,6 +313,11 @@ D3_FILES = \
 	node_modules/d3/src/transition/index.js \
 	node_modules/d3/src/xhr/index.js \
 	node_modules/d3/src/end.js
+
+mapillary:
+	cp node_modules/mapillary-js/dist/mapillary-js.min.css css/mapillary.css
+	cp node_modules/mapillary-js/dist/*.svg css
+	cp node_modules/mapillary-js/dist/mapillary-js.min.js js/lib/mapillary.js
 
 d3:
 	node_modules/.bin/smash $(D3_FILES) > js/lib/d3.v3.js

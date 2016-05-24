@@ -2,9 +2,9 @@ iD.services.mapillary = function() {
     var mapillary = {},
         dispatch = d3.dispatch('loadedImages', 'loadedSigns'),
         apibase = 'https://a.mapillary.com/v2/',
+        urlThumb = 'https://d1cuyjsrcm0gby.cloudfront.net/',
         clientId = 'NzNRM2otQkR2SHJzaXJmNmdQWVQ0dzo1ZWYyMmYwNjdmNDdlNmVi',
         maxResults = 1000,
-        mly, thumbnail,
         tileZoom = 14;
 
 
@@ -205,70 +205,78 @@ iD.services.mapillary = function() {
         return iD.services.mapillary.sign_defs[country][type];
     };
 
-    mapillary.showThumbnail = function(imageKey, position) {
+    mapillary.showThumbnail = function(imageKey, position, interactive) {
         if (!imageKey) return;
-
+//         console.log('hello world');
         var positionClass = {
             'ar': (position !== 'left'),
             'al': (position === 'left')
         };
 
-        if(thumbnail === undefined) {
+        var thumbnail = d3.select('#content').selectAll('.mapillary-image')
+            .data([0]);
 
-            thumbnail = d3.select('#content').selectAll('.mapillary-image')
-                .data([0]);
+        // Enter
+        var enter = thumbnail.enter().append('div')
+            .attr('class', 'mapillary-image ar');
 
-            // Enter
-            var enter = thumbnail.enter().append('div')
-                .attr('class', 'mapillary-image ar');
+        enter.append('button')
+            .on('click', function () {
+                mapillary.hideThumbnail();
+            })
+            .append('div')
+            .call(iD.svg.Icon('#icon-close'));
 
-            enter.append('button')
-                .on('click', function () {
-                    mapillary.hideThumbnail();
-                })
-                .append('div')
-                .call(iD.svg.Icon('#icon-close'));
-            enter.append('div')
-                .attr('class', 'mly-wrapper')
-                .attr('id', 'mly');
-        } else {
-            var pos = 'ar';
-            if(positionClass.al) {
-                pos = 'al';
-            }
-            var im = d3.select('#content').selectAll('.mapillary-image');
-            im
-                .transition()
-                .duration(200)
-                .style('opacity', 100)
-                .attr('class','mapillary-image ' + pos);
+        enter.append('img');
 
+        enter.append('div')
+            .attr('class', 'mly-wrapper inactive')
+            .attr('id', 'mly');
+
+
+        // Update
+        thumbnail.selectAll('img')
+            .attr('src', urlThumb + imageKey + '/thumb-320.jpg')
+            .classed('active', !interactive);
+
+        thumbnail.selectAll('.mly-wrapper')
+          .classed('active', interactive);
+
+        if (position) {
+            thumbnail.classed(positionClass);
         }
-        if(mly === undefined) {
-            mly = new Mapillary.Viewer('mly', 'NzNRM2otQkR2SHJzaXJmNmdQWVQ0dzo1ZWYyMmYwNjdmNDdlNmVi',imageKey, {
+
+        if(!iD.services.mapillary.viewer) {
+            iD.services.mapillary.viewer = new Mapillary.Viewer('mly', clientId, imageKey, {
                 'imagePlane': false,
                 'image': true,
                 'cover': false,
-                'debug': true
+                'debug': false
             });
         }
-        mly.moveToKey(imageKey);
-        mly.on('nodechanged', function (node) {
-            d3.selectAll('.layer-mapillary-images .viewfield-group, .layer-mapillary-signs .icon-sign')
-                .classed('selected', function (d) {
-                    return d.key === node.key;
-                });
-        });
+        if (interactive) {
+            iD.services.mapillary.viewer.moveToKey(imageKey);
+        }
 
+        thumbnail
+            .classed('hidden', false);
     };
 
     mapillary.hideThumbnail = function() {
-        if (iD.services.mapillary && iD.services.mapillary.thumb != null) {
-            d3.select('#content').selectAll('.mapillary-image')
-                .transition()
-                .duration(200)
-                .style('opacity', 0);
+        if (iD.services.mapillary) {
+            iD.services.mapillary.thumb = null;
         }
+        d3.select('#content').selectAll('.mapillary-image')
+            .classed('hidden', true);
+    };
+
+    mapillary.killThumbnail = function() {
+        if (iD.services.mapillary) {
+            iD.services.mapillary.thumb = null;
+            iD.services.mapillary.viewer = null;
+        }
+        d3.select('#content').selectAll('.mapillary-image')
+            .remove();
     };
 
     mapillary.selectedThumbnail = function(d) {

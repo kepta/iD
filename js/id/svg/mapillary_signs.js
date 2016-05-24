@@ -2,7 +2,7 @@ iD.svg.MapillarySigns = function(projection, context, dispatch) {
     var debouncedRedraw = _.debounce(function () { dispatch.change(); }, 1000),
         minZoom = 12,
         layer = d3.select(null),
-        _mapillary;
+        _mapillary, _viewer, _mlyLoading, pendingImg;
 
 
     function init() {
@@ -20,7 +20,16 @@ iD.svg.MapillarySigns = function(projection, context, dispatch) {
         return _mapillary;
     }
 
-    function showThumbnail(image) {
+    function showLoading(image) {
+        var mapillary = getMapillary();
+        if (!mapillary) return;
+        pendingImg = image;
+        d3.selectAll('.layer-mapillary-images .viewfield-group, .layer-mapillary-signs .icon-sign')
+            .classed('loading', function(d) { return d.key === image.key; });
+    }
+
+
+    function showThumbnail(image, interactive) {
         var mapillary = getMapillary();
         if (!mapillary) return;
 
@@ -34,16 +43,37 @@ iD.svg.MapillarySigns = function(projection, context, dispatch) {
                 .classed('selected', function(d) { return d.key === thumb.key; });
         }
 
-        mapillary.showThumbnail(image.key, position);
+        mapillary.showThumbnail(image.key, position, interactive);
+
+        if (!_viewer && interactive) {
+            _viewer = iD.services.mapillary.viewer;
+            _viewer.on('nodechanged', viewerNavHandler);
+
+            // To avoid edge case, when network is too slow and  user clicks on multiple
+            // viewfield-groups.
+            _viewer.on('loadingchanged', function(s) {
+                if (!s && pendingImg) {
+                    d3.selectAll('.layer-mapillary-images .viewfield-group, .layer-mapillary-signs .icon-sign')
+                        .classed('loading', function() { return false; });
+                    mapillary.selectedThumbnail(pendingImg);
+                    context.map().centerEase(pendingImg.loc);
+                    showThumbnail(pendingImg, true);
+                    pendingImg = null;
+                }
+                _mlyLoading = s;
+            });
+        }
     }
 
-    function hideThumbnail() {
+    function removeThumbnail(permanent) {
+
         d3.selectAll('.layer-mapillary-images .viewfield-group, .layer-mapillary-signs .icon-sign')
             .classed('selected', false);
 
         var mapillary = getMapillary();
         if (mapillary) {
-            mapillary.hideThumbnail();
+          if (permanent) return mapillary.killThumbnail();
+          return mapillary.hideThumbnail();
         }
     }
 
@@ -54,7 +84,14 @@ iD.svg.MapillarySigns = function(projection, context, dispatch) {
 
     function hideLayer() {
         debouncedRedraw.cancel();
-        hideThumbnail();
+        if (_viewer) {
+          _viewer.off('nodechanged');
+          _viewer.off('loadingchanged');
+        }
+        _mlyLoading = null;
+        pendingImg = null;
+        _viewer = null;
+        removeThumbnail(true);
         editOff();
     }
 
@@ -91,22 +128,24 @@ iD.svg.MapillarySigns = function(projection, context, dispatch) {
                 if (!mapillary) return;
                 var thumb = mapillary.selectedThumbnail();
                 if (thumb && thumb.key === d.key) {
-                    hideThumbnail();
+                    removeThumbnail();
+                } else if (_mlyLoading) {
+                    showLoading(d);
                 } else {
                     mapillary.selectedThumbnail(d);
                     context.map().centerEase(d.loc);
-                    showThumbnail(d);
+                    showThumbnail(d, true);
                 }
             })
-            .on('mouseover', showThumbnail)
+            .on('mouseover', function(d) { showThumbnail(d);})
             .on('mouseout', function() {
                 var mapillary = getMapillary();
                 if (!mapillary) return;
                 var thumb = mapillary.selectedThumbnail();
                 if (thumb) {
-                    showThumbnail(thumb);
+                    showThumbnail(thumb, true);
                 } else {
-                    hideThumbnail();
+                    removeThumbnail();
                 }
             });
 
@@ -144,6 +183,23 @@ iD.svg.MapillarySigns = function(projection, context, dispatch) {
                 editOff();
             }
         }
+    }
+
+    function viewerNavHandler(node) {
+        var mapillary = getMapillary();
+        if (!mapillary) return;
+
+        var thumb = mapillary.selectedThumbnail();
+        if (thumb.key === node.key) return;
+
+        d3.selectAll('.layer-mapillary-images .viewfield-group, .layer-mapillary-signs .icon-sign')
+            .classed('selected', function(d) {
+              if (d.key === node.key) {
+                mapillary.selectedThumbnail(d);
+                context.map().centerEase(d.loc);
+                return true;
+              }
+            });
     }
 
     drawSigns.enabled = function(_) {
