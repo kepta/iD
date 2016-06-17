@@ -51,6 +51,7 @@ MODULE_TARGETS = \
 	js/lib/id/presets.js \
 	js/lib/id/services.js \
 	js/lib/id/ui/intro.js \
+	js/lib/id/ui/preset.js \
 	js/lib/id/svg.js \
 	js/lib/id/util.js \
 	js/lib/id/validations.js
@@ -90,6 +91,10 @@ js/lib/id/svg.js: $(shell find modules/svg -type f)
 js/lib/id/ui/intro.js: $(shell find modules/ui/intro -type f)
 	@rm -f $@
 	node_modules/.bin/rollup -f umd -n iD.ui.intro modules/ui/intro/index.js --no-strict -o $@
+
+js/lib/id/ui/preset.js: $(shell find modules/ui/preset -type f)
+	@rm -f $@
+	node_modules/.bin/rollup -f umd -n iD.ui.preset modules/ui/preset/index.js --no-strict -o $@
 
 js/lib/id/util.js: $(shell find modules/util -type f)
 	@rm -f $@
@@ -191,18 +196,6 @@ dist/iD.js: \
 	js/id/ui/undo_redo.js \
 	js/id/ui/view_on_osm.js \
 	js/id/ui/zoom.js \
-	js/id/ui/preset/access.js \
-	js/id/ui/preset/address.js \
-	js/id/ui/preset/check.js \
-	js/id/ui/preset/combo.js \
-	js/id/ui/preset/cycleway.js \
-	js/id/ui/preset/input.js \
-	js/id/ui/preset/localized.js \
-	js/id/ui/preset/maxspeed.js \
-	js/id/ui/preset/radio.js \
-	js/id/ui/preset/restrictions.js \
-	js/id/ui/preset/textarea.js \
-	js/id/ui/preset/wikipedia.js \
 	js/id/end.js \
 	js/lib/locale.js \
 	data/introGraph.js
