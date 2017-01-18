@@ -814,7 +814,7 @@
         },
         "lanes": {
             "key": "lanes",
-            "type": "number",
+            "type": "lanes",
             "label": "Lanes",
             "placeholder": "1, 2, 3..."
         },
