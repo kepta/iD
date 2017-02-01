@@ -21,3 +21,4 @@ export { geoPointInPolygon } from './geo.js';
 export { geoPolygonContainsPolygon } from './geo.js';
 export { geoPolygonIntersectsPolygon } from './geo.js';
 export { geoSphericalDistance } from './geo.js';
+export { geoDivideSegment } from './geo.js';

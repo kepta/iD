@@ -1221,6 +1221,119 @@ button.save.has-count .count::before {
     border-bottom-right-radius: 4px;
 }
 
+/* lanes */
+
+.form-field-lanes {
+    
+}
+
+.form-field-lanes .lanes-info {
+    margin-bottom: 10px;
+}
+
+.form-field-lanes .preset-input-wrap input {
+    border-radius: 0;
+    border-width: 0;
+    border-bottom-width: 1px;
+}
+
+.form-field-lanes .preset-input-lanes-wrap input {
+    border-radius: 0;
+    border-width: 0;
+    border-left-width: 1px;
+}
+
+.form-field-lanes .preset-input-wrap li {
+    border-bottom: 1px solid #CCC;
+}
+
+.form-field-lanes .preset-input-wrap li:last-child {
+    border-bottom: 0;
+}
+
+.form-field-lanes .entry {
+    margin-top: 10px;
+    opacity: 1;
+    overflow: visible;
+}
+
+.lane-selector ul {
+    display: flex;
+    flex-direction: row;
+    
+}
+
+.lane-selector .lane-item {
+    cursor: pointer;
+    display: flex;
+    flex-grow: 1;
+    border-right: 1px solid #ccc;
+    border-bottom: 0;
+    flex-direction: column;
+    align-items: center;
+    background-color: white;
+}
+
+.lane-selector .lane-item.active {
+    background-color: #E8EBFF;
+}
+.lane-selector .lane-item.active:hover {
+    background-color: #E8EBFF;
+}
+.lane-selector .lane-item:hover {
+    background-color: #ececec;
+}
+
+.lane-selector .lane-item:last-child {
+    border-right: 0;
+}
+
+.lane-selector .lane-item span {
+    height: 30px;
+    padding: 5px 10px 5px 10px;
+}
+
+.lane-tags > label {
+    position: relative;
+    padding: 5px 10px;
+    display: block;
+    height: 30px;
+    background-color: white;
+    color: #7092FF;
+    cursor: pointer;
+}
+
+.lane-tags > label:hover {
+    background-color: #ececec;
+}
+
+.lane-tags > label:not(:last-child) {
+    border-bottom: 1px solid #ccc;
+}
+
+.lane-tags > label:last-child {
+    border-radius: 0 0 3px 3px;
+}
+
+.lane-tags label > span {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.lane-tags > label.active {
+    background: #E8EBFF;
+}
+
+/*lane-visualizer*/
+
+.lane-visualizer-background {
+    fill: #000;
+    fill-opacity: 0.5;
+}
+
+
 /* preset form multicombo */
 
 .form-field-multicombo {

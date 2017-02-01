@@ -14,8 +14,19 @@ export function osmLanes(entity) {
     var forward = laneDirections.forward;
     var backward = laneDirections.backward;
     var bothways = laneDirections.bothways;
+    
+    // sometimes just forward and backward are available
+    laneCount = laneDirections.laneCount; 
+    // TODO: if you change the forward backward and click on trash at top, 
+    // laneCount and forward/backward goes out of sync
 
+    // TODO: sometimes people just do turn:lanes:backward=|||| and dont mention
+    // any kind of count. need to handle it
     // parse the piped string 'x|y|z' format
+
+    // TODO: if you add 8 forward turn lanes and thrn put forward count as 4
+    // goes out of sync. Reducing the number of forward turn lanes doesnt reduce turn lanes
+    // forward
     var turnLanes = {};
     turnLanes.unspecified = parseTurnLanes(tags['turn:lanes']);
     turnLanes.forward = parseTurnLanes(tags['turn:lanes:forward']);
@@ -72,8 +83,9 @@ export function osmLanes(entity) {
     mapToLanesObj(lanesObj, hgvLanes, 'hgv');
     mapToLanesObj(lanesObj, bicyclewayLanes, 'bicycleway');
 
-    return {
-        metadata: {
+    // TODO: need to make sure forward lanes is consistent across all tags,
+    // eg if psv:lanes:forward is 3 and lanes:forward is 2, changes lanes:forward =3,
+    var metadata = {
             count: laneCount,
             oneway: isOneWay,
             forward: forward,
@@ -87,8 +99,11 @@ export function osmLanes(entity) {
             taxiLanes: taxiLanes,
             hovLanes: hovLanes,
             hgvLanes: hgvLanes,
-            bicyclewayLanes: bicyclewayLanes
-        },
+            bicyclewayLanes: bicyclewayLanes,
+            reverse: parseInt(tags.oneway, 10) === -1
+    };
+    return {
+        metadata: metadata,
         lanes: lanesObj
     };
 }
@@ -133,7 +148,7 @@ function parseLaneDirections(tags, isOneWay, laneCount) {
     var forward = parseInt(tags['lanes:forward'], 10);
     var backward = parseInt(tags['lanes:backward'], 10);
     var bothways = parseInt(tags['lanes:both_ways'], 10) > 0 ? 1 : 0;
-
+    var count = laneCount;
     if (parseInt(tags.oneway, 10) === -1) {
         forward = 0;
         bothways = 0;
@@ -160,17 +175,19 @@ function parseLaneDirections(tags, isOneWay, laneCount) {
         }
         backward = laneCount - bothways - forward;
     }
+
     return {
         forward: forward,
         backward: backward,
-        bothways: bothways
+        bothways: bothways,
+        laneCount: forward + backward+ bothways
     };
 }
 
 
 function parseTurnLanes(tag){
-    if (!tag) return;
-
+    if (!tag) return [];
+    // TODO: need to add reverse_left and reverse_right
     var validValues = [
         'left', 'slight_left', 'sharp_left', 'through', 'right', 'slight_right',
         'sharp_right', 'reverse', 'merge_to_left', 'merge_to_right', 'none'
@@ -188,7 +205,7 @@ function parseTurnLanes(tag){
 
 
 function parseMaxspeedLanes(tag, maxspeed) {
-    if (!tag) return;
+    if (!tag) return [];
 
     return tag.split('|')
         .map(function (s) {
@@ -201,7 +218,7 @@ function parseMaxspeedLanes(tag, maxspeed) {
 
 
 function parseMiscLanes(tag) {
-    if (!tag) return;
+    if (!tag) return [];
 
     var validValues = [
         'yes', 'no', 'designated'
@@ -214,9 +231,9 @@ function parseMiscLanes(tag) {
         });
 }
 
-
+// TODO: need to append lanes? and make it return an array?
 function parseBicycleWay(tag) {
-    if (!tag) return;
+    if (!tag) return [];
 
     var validValues = [
         'yes', 'no', 'designated', 'lane'
@@ -244,3 +261,68 @@ function mapToLanesObj(lanesObj, data, key) {
         lanesObj.unspecified[i][key] = l;
     });
 }
+
+function lanesArray(lanesData) {
+    var metadata = _.cloneDeep(lanesData);
+    // var arr = new Array(metadata.count);
+    var consideredLaneTags = [ 'busLanes', 'hgvLanes', 'hovLanes',  'maxspeedLanes', 'psvLanes', 'taxiLanes', 'turnLanes' ]; 
+    var obj = {};
+
+    obj.forward = new Array(metadata.forward);
+    obj.backward =  new Array(metadata.backward);
+    // obj.bothways = new Array(metadata.bothways); // jo
+    obj.unspecified = new Array(metadata.count); //_.fill(Array(metadata.count), { });
+
+    consideredLaneTags.forEach(function (laneTag) {
+       var lane  = metadata[laneTag];
+       Object.keys(lane).forEach(function (direction) {
+        lane[direction]
+            .forEach(function (tag, i) {
+                if (!obj[direction][i]) obj[direction][i] = {};
+                if (i < obj[direction].length) {
+                    obj[direction][i][laneTag] = tag;
+                }
+            });
+       });
+    });
+    
+    return obj;
+}
+
+export function getLayoutSeq(metadata, leftHand, kind) {
+    if (!metadata) return [];
+    if (metadata.oneway) {
+        return _.fill(Array(metadata.count), 0).map(function (n, i) {
+            return {
+                dir: 'unspecified',
+                lanes: metadata[kind].unspecified,
+                index: i
+            };
+        });
+    }
+        
+    var forward = metadata.forward;
+    var backward = metadata.backward;
+
+    var forSeq = _.fill(Array(forward), 0).map(function (n, i) {
+        return {
+            dir: 'forward',
+            lanes: metadata[kind].forward,
+            index: i
+        };
+    });
+    var backSeq = _.fill(Array(backward), 0).map(function (n, i) {
+         return {
+            dir: 'backward',
+            lanes: metadata[kind].backward,
+            index:  backward - i - 1
+        };
+    });
+   
+    if (leftHand) {
+        return [].concat(forSeq, backSeq);
+    }
+    return [].concat(backSeq, forSeq);
+}
+
+window.getLayoutSeq = getLayoutSeq;
